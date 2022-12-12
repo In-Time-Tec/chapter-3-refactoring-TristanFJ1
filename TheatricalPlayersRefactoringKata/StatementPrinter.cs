@@ -6,47 +6,84 @@ namespace TheatricalPlayersRefactoringKata
 {
     public class StatementPrinter
     {
+        private int totalCost;
+        private int rewardPoints;
+        private int audienceCount;
+        private int costOfPlay;
+        private string statement;
+        private Play play; 
+        private CultureInfo cultureInfo;
+
+
         public string Print(Invoice invoice, Dictionary<string, Play> plays)
         {
-            var totalAmount = 0;
-            var volumeCredits = 0;
-            var result = string.Format("Statement for {0}\n", invoice.Customer);
-            CultureInfo cultureInfo = new CultureInfo("en-US");
 
-            foreach(var perf in invoice.Performances) 
+            Init(invoice);
+
+            foreach(var performance in invoice.Performances) 
             {
-                var play = plays[perf.PlayID];
-                var thisAmount = 0;
-                switch (play.Type) 
+                ResetFields(performance, plays);
+
+                CalculateCosts();
+
+                AddRewardPoints();
+
+                PrintOrderStatement();
+            }
+
+            FormatStatement();
+
+            return statement;
+        }
+        
+        private void Init(Invoice invoice) {
+            totalCost = 0;
+            rewardPoints = 0;
+            statement = string.Format("Statement for {0}\n", invoice.Customer);
+            cultureInfo = new CultureInfo("en-US");
+        }
+
+        private void AddRewardPoints() {
+                rewardPoints += Math.Max(audienceCount - 30, 0);
+                if ("comedy" == play.Type) rewardPoints += (int)Math.Floor((decimal)audienceCount / 5);
+        }
+
+        private void ResetFields(Performance performance, Dictionary<string, Play> plays) {
+                audienceCount = performance.Audience;
+                play = plays[performance.PlayID];
+                costOfPlay = 0;
+        }
+
+        private void CalculateCosts() {
+        switch (play.Type) 
                 {
                     case "tragedy":
-                        thisAmount = 40000;
-                        if (perf.Audience > 30) {
-                            thisAmount += 1000 * (perf.Audience - 30);
+                        costOfPlay = 40000;
+                        if (audienceCount > 30) {
+                            costOfPlay += 1000 * (audienceCount - 30);
                         }
                         break;
                     case "comedy":
-                        thisAmount = 30000;
-                        if (perf.Audience > 20) {
-                            thisAmount += 10000 + 500 * (perf.Audience - 20);
+                        costOfPlay = 30000;
+                        if (audienceCount > 20) {
+                            costOfPlay += 10000 + 500 * (audienceCount - 20);
                         }
-                        thisAmount += 300 * perf.Audience;
+                            costOfPlay += 300 * audienceCount;
                         break;
                     default:
                         throw new Exception("unknown type: " + play.Type);
                 }
-                // add volume credits
-                volumeCredits += Math.Max(perf.Audience - 30, 0);
-                // add extra credit for every ten comedy attendees
-                if ("comedy" == play.Type) volumeCredits += (int)Math.Floor((decimal)perf.Audience / 5);
+        }
 
-                // print line for this order
-                result += String.Format(cultureInfo, "  {0}: {1:C} ({2} seats)\n", play.Name, Convert.ToDecimal(thisAmount / 100), perf.Audience);
-                totalAmount += thisAmount;
-            }
-            result += String.Format(cultureInfo, "Amount owed is {0:C}\n", Convert.ToDecimal(totalAmount / 100));
-            result += String.Format("You earned {0} credits\n", volumeCredits);
-            return result;
+        private void PrintOrderStatement() {
+                statement += String.Format(cultureInfo, "  {0}: {1:C} ({2} seats)\n", play.Name, Convert.ToDecimal(costOfPlay / 100), audienceCount);
+                totalCost += costOfPlay;
+
+        }
+
+        private void FormatStatement() {
+            statement += String.Format(cultureInfo, "Amount owed is {0:C}\n", Convert.ToDecimal(totalCost / 100));
+            statement += String.Format("You earned {0} credits\n", rewardPoints);
         }
     }
 }
